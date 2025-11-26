@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Takemura"
+  given-names: "Takato"
+title: "Normal-Fabric-vs.-Intersection-Fabric"
+version: 1.02
+doi: 10.5281/zenodo.17728891
+date-released: 2025-11-26
+url: "https://github.com/gragranite/Normal-Fabric-vs.-Intersection-Fabric"
