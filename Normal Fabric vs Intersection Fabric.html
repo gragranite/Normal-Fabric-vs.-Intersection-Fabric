@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Normal fabric vs. intersection fabric (stereonet) — principal axes symbols</title>
+<style>
+  body { font-family: system-ui, 'Noto Sans JP', sans-serif; margin: 20px; }
+  fieldset { border:1px solid #ccc; border-radius:10px; padding:12px; margin-bottom:12px; }
+  .grid { display:grid; gap:14px; grid-template-columns: 1fr; }
+  @media (min-width: 1100px){ .grid { grid-template-columns: 380px 1fr; } }
+  table { border-collapse: collapse; width:100%; margin-top:6px; }
+  th, td { border:1px solid #ccc; padding:4px 6px; font-size:0.9rem; text-align:right; }
+  th { background:#f7f7f7; text-align:center; }
+  #stereo { width: 680px; height: 680px; max-width: 100%; border:1px solid #ddd; }
+  .legend { display:flex; gap:12px; align-items:center; flex-wrap: wrap; margin-top:6px; }
+  .chip { display:inline-flex; align-items:center; gap:6px; }
+  .chip svg { width:14px; height:14px; }
+  .histwrap{ border:1px solid #ddd; border-radius:10px; padding:10px; margin-top:12px; }
+  .row2{ display:grid; gap:14px; grid-template-columns: 1fr; }
+  @media (min-width: 900px){ .row2{ grid-template-columns: 2fr 1fr; } }
+</style>
+</head>
+<body>
+<h1>Normal fabric vs. intersection fabric (lower-hemisphere, equal-angle projection)</h1>
+<div class="grid">
+  <div>
+    <fieldset>
+      <legend>Input</legend>
+      <label>Number of disks (normals) N</label>
+      <input id="N" type="number" value="100" min="3" step="1">
+      <label>Generation pattern</label>
+      <select id="pattern">
+        <option value="uniform">Random (uniform on sphere)</option>
+        <option value="axis_mix">Concentrated around x, y, z</option>
+      </select>
+      <label>x:y:z ratio (for axis_mix)</label>
+      <input id="ratios" type="text" value="1:1:1">
+      <label>Degree of concentration (σ, deg)</label>
+      <input id="sigma" type="number" value="15" min="0" step="1">
+      <div class="row2">
+        <div>
+          <label>Disk diameter (2r, units)</label>
+          <input id="diam" type="number" value="2" min="0" step="0.1">
+        </div>
+        <div>
+          <label>Number of sampled intersection pairs M</label>
+          <input id="Mpairs" type="number" value="50000" min="100" step="100">
+        </div>
+      </div>
+      <label>Random seed</label>
+      <input id="seed" type="number" value="0" step="1">
+      <div style="margin-top:6px; display:flex; gap:14px; align-items:center; flex-wrap: wrap;">
+        <label style="display:flex; gap:6px; align-items:center;">
+          <input id="showC" type="checkbox" checked> Also show principal axes of intersection tensor C<sub>ij</sub>
+        </label>
+      </div>
+      <button id="runBtn" style="margin-top:10px;">Generate</button>
+    </fieldset>
+    <fieldset>
+      <legend>Summary</legend>
+      <div id="summary"></div>
+      <div class="legend">
+        <span class="chip">
+          <!-- N_ij: λ1 circle -->
+          <svg viewBox="0 0 20 20" aria-hidden="true">
+            <circle cx="10" cy="10" r="6" fill="#4aa3ff" fill-opacity="0.45" stroke="#0b3d91" stroke-width="1.5"></circle>
+          </svg>
+          N<sub>ij</sub>: λ1 (●)
+        </span>
+        <span class="chip">
+          <!-- N_ij: λ2 triangle -->
+          <svg viewBox="0 0 20 20" aria-hidden="true">
+            <polygon points="10,4 16,16 4,16"
+              fill="#4aa3ff" fill-opacity="0.45" stroke="#0b3d91" stroke-width="1.5"></polygon>
+          </svg>
+          N<sub>ij</sub>: λ2 (▲)
+        </span>
+        <span class="chip">
+          <!-- N_ij: λ3 square -->
+          <svg viewBox="0 0 20 20" aria-hidden="true">
+            <rect x="5" y="5" width="10" height="10"
+              fill="#4aa3ff" fill-opacity="0.45" stroke="#0b3d91" stroke-width="1.5"></rect>
+          </svg>
+          N<sub>ij</sub>: λ3 (■)
+        </span>
+        <span class="chip">
+          <!-- C_ij: λ1 circle (red) -->
+          <svg viewBox="0 0 20 20" aria-hidden="true">
+            <circle cx="10" cy="10" r="6" fill="#e85d5d" fill-opacity="0.45" stroke="#7a1e1e" stroke-width="1.5"></circle>
+          </svg>
+          C<sub>ij</sub>: λ1 (●)
+        </span>
+        <span class="chip">
+          <!-- C_ij: λ2 triangle (red) -->
+          <svg viewBox="0 0 20 20" aria-hidden="true">
+            <polygon points="10,4 16,16 4,16"
+              fill="#e85d5d" fill-opacity="0.45" stroke="#7a1e1e" stroke-width="1.5"></polygon>
+          </svg>
+          C<sub>ij</sub>: λ2 (▲)
+        </span>
+        <span class="chip">
+          <!-- C_ij: λ3 square (red) -->
+          <svg viewBox="0 0 20 20" aria-hidden="true">
+            <rect x="5" y="5" width="10" height="10"
+              fill="#e85d5d" fill-opacity="0.45" stroke="#7a1e1e" stroke-width="1.5"></rect>
+          </svg>
+          C<sub>ij</sub>: λ3 (■)
+        </span>
+      </div>
+    </fieldset>
+  </div>
+  <div>
+    <svg id="stereo" viewBox="0 0 720 720"></svg>
+    <div style="margin-top:8px;">
+      <button id="dlSVG">Download stereonet SVG</button>
+    </div>
+
+    <div class="histwrap">
+      <h3 style="margin:.25rem 0;">Histogram of intersection lengths (approximate model)</h3>
+      <svg id="hist" viewBox="0 0 720 320" style="width:100%; height:320px;"></svg>
+      <div class="row2">
+        <div>
+          <small>Note: Assuming that each disk has chord length L = 2*sqrt(r² − s²) (s uniformly distributed) and the relative shift is also uniform, the overlap length ℓ is approximated by a uniform distribution.</small>
+        </div>
+        <div>
+          <table id="qtable"></table>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-top:12px;">
+      <div>
+        <h3 style="margin:.25rem 0;">Second-rank tensor (normals) N<sub>ij</sub> = ⟨n<sub>i</sub> n<sub>j</sub>⟩</h3>
+        <table id="A_tbl"></table>
+        <table id="A_eig" style="margin-top:6px;"></table>
+        <h4 style="margin-top:6px;">Diagonalized matrix of N</h4>
+        <table id="A_diag"></table>
+      </div>
+      <div>
+        <h3 style="margin:.25rem 0;">Second-rank tensor (intersections) C<sub>ij</sub> = ⟨c<sub>i</sub> c<sub>j</sub>⟩</h3>
+        <table id="C_tbl"></table>
+        <table id="C_eig" style="margin-top:6px;"></table>
+        <h4 style="margin-top:6px;">Diagonalized matrix of C</h4>
+        <table id="C_diag"></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== Utilities =====
+function makeRNG(seed){ let s=(seed>>>0)||1; return function(){ s=(1664525*s + 1013904223)>>>0; return s/4294967296; }; }
+function randn(rng){ let u=0,v=0; while(u===0) u=rng(); while(v===0) v=rng(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+function normalize(v){ const m=Math.hypot(v[0],v[1],v[2])||1; return [v[0]/m, v[1]/m, v[2]/m]; }
+function dot(a,b){ return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
+function cross(a,b){ return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]; }
+function stereographicLower(v){ let n=normalize(v); if(n[2]>0) n=[-n[0],-n[1],-n[2]]; const x=n[0],y=n[1],z=n[2]; const h=Math.hypot(x,y)||1; const phi=Math.asin(z); const r=Math.tan((Math.PI/2+phi)/2); return [r*x/h, r*y/h]; }
+
+// ===== Sampling =====
+function sampleUniform(N,rng){ const out=[]; for(let i=0;i<N;i++){ let v=[randn(rng),randn(rng),randn(rng)]; v=normalize(v); if(v[2]>0) v=[-v[0],-v[1],-v[2]]; out.push(v);} return out; }
+function sampleAxisMix(N,rng,ratios,sigmaDeg){ const [rx,ry,rz]=ratios; const sum=rx+ry+rz; const px=rx/sum, py=ry/sum; const sigma=sigmaDeg*Math.PI/180; const out=[]; for(let i=0;i<N;i++){ const u=rng(); let a=(u<px)?[1,0,0]:(u<px+py?[0,1,0]:[0,0,-1]); let v=[a[0]+sigma*randn(rng), a[1]+sigma*randn(rng), a[2]+sigma*randn(rng)]; v=normalize(v); if(v[2]>0) v=[-v[0],-v[1],-v[2]]; out.push(v);} return out; }
+
+// ===== Eigen for 3x3 symmetric (Jacobi) =====
+function eigSym3(A){
+  let a=[[A[0][0],A[0][1],A[0][2]],[A[1][0],A[1][1],A[1][2]],[A[2][0],A[2][1],A[2][2]]];
+  a[1][0]=a[0][1]=(a[1][0]+a[0][1])/2; a[2][0]=a[0][2]=(a[2][0]+a[0][2])/2; a[2][1]=a[1][2]=(a[2][1]+a[1][2])/2;
+  let V=[[1,0,0],[0,1,0],[0,0,1]]; const maxIter=60, eps=1e-12;
+  for(let it=0; it<maxIter; it++){
+    let p=0,q=1,m=Math.abs(a[0][1]);
+    if(Math.abs(a[0][2])>m){p=0;q=2;m=Math.abs(a[0][2]);}
+    if(Math.abs(a[1][2])>m){p=1;q=2;m=Math.abs(a[1][2]);}
+    if(m<eps) break;
+    const app=a[p][p], aqq=a[q][q], apq=a[p][q];
+    const phi=0.5*Math.atan2(2*apq,(aqq-app)); const c=Math.cos(phi), s=Math.sin(phi);
+    for(let k=0;k<3;k++){ const akp=a[k][p], akq=a[k][q]; a[k][p]=c*akp - s*akq; a[k][q]=s*akp + c*akq; }
+    for(let k=0;k<3;k++){ const apk=a[p][k], aqk=a[q][k]; a[p][k]=c*apk - s*aqk; a[q][k]=s*apk + c*aqk; }
+    a[p][q]=a[q][p]=0;
+    for(let k=0;k<3;k++){ const vkp=V[k][p], vkq=V[k][q]; V[k][p]=c*vkp - s*vkq; V[k][q]=s*vkp + c*vkq; }
+  }
+  const w=[a[0][0],a[1][1],a[2][2]];
+  const idx=[0,1,2].sort((i,j)=>w[j]-w[i]);
+  const ws=idx.map(i=>w[i]); const Vs=[0,1,2].map(r=>idx.map(i=>V[r][i]));
+  return {w:ws, V:Vs};
+}
+
+// ===== Fabric tensors =====
+function fabricNormals(normals){
+  const N=normals.length; let A=[[0,0,0],[0,0,0],[0,0,0]];
+  for(const n of normals){ for(let i=0;i<3;i++) for(let j=0;j<3;j++) A[i][j]+=n[i]*n[j]; }
+  for(let i=0;i<3;i++) for(let j=0;j<3;j++) A[i][j]/=N; return A;
+}
+function fabricIntersections(normals){
+  const M=normals.length; let C=[[0,0,0],[0,0,0],[0,0,0]]; let cnt=0;
+  for(let a=0;a<M; a++) for(let b=a+1;b<M; b++){
+    const c = cross(normals[a], normals[b]); const m = Math.hypot(c[0],c[1],c[2]); if(m<1e-12) continue;
+    let u=[c[0]/m, c[1]/m, c[2]/m]; if(u[2]>0) u=[-u[0],-u[1],-u[2]];
+    for(let i=0;i<3;i++) for(let j=0;j<3;j++) C[i][j]+=u[i]*u[j]; cnt++;
+  }
+  if(cnt===0) return {C:[[NaN,NaN,NaN],[NaN,NaN,NaN],[NaN,NaN,NaN]], pairs:0};
+  for(let i=0;i<3;i++) for(let j=0;j<3;j++) C[i][j]/=cnt; return {C, pairs:cnt};
+}
+
+// ===== Drawing helpers =====
+function drawSymbol(svg, x, y, shape, size, fill, stroke, opacity){
+  const ns=svg.namespaceURI;
+  if(shape==='circle'){
+    const c=document.createElementNS(ns,'circle');
+    c.setAttribute('cx',x); c.setAttribute('cy',y); c.setAttribute('r',size);
+    c.setAttribute('fill',fill); c.setAttribute('fill-opacity',opacity);
+    c.setAttribute('stroke',stroke); c.setAttribute('stroke-width','1.5');
+    svg.appendChild(c);
+    return c;
+  }else if(shape==='triangle'){
+    const h=size*Math.sqrt(3); // equilateral height
+    const p1=[x, y - 2*h/3];
+    const p2=[x + size, y + h/3];
+    const p3=[x - size, y + h/3];
+    const poly=document.createElementNS(ns,'polygon');
+    poly.setAttribute('points', `${p1[0]},${p1[1]} ${p2[0]},${p2[1]} ${p3[0]},${p3[1]}`);
+    poly.setAttribute('fill',fill); poly.setAttribute('fill-opacity',opacity);
+    poly.setAttribute('stroke',stroke); poly.setAttribute('stroke-width','1.5');
+    svg.appendChild(poly);
+    return poly;
+  }else if(shape==='square'){
+    const d=size*Math.SQRT2; // make areas visually comparable
+    const rect=document.createElementNS(ns,'rect');
+    rect.setAttribute('x', x - d/2); rect.setAttribute('y', y - d/2);
+    rect.setAttribute('width', d); rect.setAttribute('height', d);
+    rect.setAttribute('fill',fill); rect.setAttribute('fill-opacity',opacity);
+    rect.setAttribute('stroke',stroke); rect.setAttribute('stroke-width','1.5');
+    svg.appendChild(rect);
+    return rect;
+  }
+}
+
+// ===== Drawing main =====
+function drawStereonet(svg, normals, eigA, eigC, showC){
+  const W=720,H=720,R=310,cx=W/2,cy=H/2;
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+
+  const circ=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  circ.setAttribute('cx',cx); circ.setAttribute('cy',cy); circ.setAttribute('r',R);
+  circ.setAttribute('fill','none'); circ.setAttribute('stroke','#000'); circ.setAttribute('stroke-width','2');
+  svg.appendChild(circ);
+
+  function toXY(p){ return [cx + R*p[0], cy + R*p[1]]; }
+  // normals poles
+  for(const n of normals){
+    const p=stereographicLower(n); const [x,y]=toXY(p);
+    const dot=document.createElementNS(svg.namespaceURI,'circle');
+    dot.setAttribute('cx',x); dot.setAttribute('cy',y); dot.setAttribute('r',2.3);
+    dot.setAttribute('fill','#555'); dot.setAttribute('fill-opacity','0.45');
+    svg.appendChild(dot);
+  }
+
+  // Shape mapping: 1: circle, 2: triangle, 3: square
+  const shapes=['circle','triangle','square'];
+  const sizeBase = 11; // base symbol size
+  const scale = 70;    // eigenvalue-based scale
+
+  // principal axes: N (blue, originally A)
+  if(eigA && isFinite(eigA.w[0])){
+    for(let i=0;i<3;i++){
+      const v=[eigA.V[0][i], eigA.V[1][i], eigA.V[2][i]];
+      const p=stereographicLower(v); const [x,y]=toXY(p);
+      const rr = sizeBase + scale*Math.max(0, (eigA.w[i]??0)-1/3);
+      drawSymbol(svg, x, y, shapes[i], rr, '#4aa3ff', '#0b3d91', 0.45);
+      const t=document.createElementNS(svg.namespaceURI,'text');
+      t.textContent=`λ${i+1}(N)`;  // was λ(A)
+      t.setAttribute('x',x); t.setAttribute('y',y- (i===0? rr+10 : rr+8));
+      t.setAttribute('text-anchor','middle'); t.setAttribute('font-size','12'); t.setAttribute('font-weight','700');
+      t.setAttribute('fill','#0b3d91');
+      svg.appendChild(t);
+    }
+  }
+
+  // principal axes: C (red)
+  if(showC && eigC && isFinite(eigC.w[0])){
+    for(let i=0;i<3;i++){
+      const v=[eigC.V[0][i], eigC.V[1][i], eigC.V[2][i]];
+      const p=stereographicLower(v); const [x,y]=toXY(p);
+      const rr = sizeBase + scale*Math.max(0, (eigC.w[i]??0)-1/3);
+      drawSymbol(svg, x, y, shapes[i], rr, '#e85d5d', '#7a1e1e', 0.45);
+      const t=document.createElementNS(svg.namespaceURI,'text');
+      t.textContent=`λ${i+1}(C)`;  // C のまま
+      t.setAttribute('x',x); t.setAttribute('y',y- (i===0? rr+10 : rr+8));
+      t.setAttribute('text-anchor','middle'); t.setAttribute('font-size','12'); t.setAttribute('font-weight','700');
+      t.setAttribute('fill','#7a1e1e');
+      svg.appendChild(t);
+    }
+  }
+}
+
+// ===== Tables =====
+function fillMatrix(tblId, M){
+  const names=['x','y','z'];
+  let html='<tr><th></th><th>x</th><th>y</th><th>z</th></tr>';
+  for(let i=0;i<3;i++){
+    html+=`<tr><th>${names[i]}</th><td>${M[i][0].toFixed(6)}</td><td>${M[i][1].toFixed(6)}</td><td>${M[i][2].toFixed(6)}</td></tr>`;
+  }
+  document.getElementById(tblId).innerHTML=html;
+}
+function fillEig(tblId, eig){
+  const V=eig.V,w=eig.w;
+  let html='<tr><th>λ</th><th>Value</th><th>e_x</th><th>e_y</th><th>e_z</th></tr>';
+  for(let i=0;i<3;i++){
+    html+=`<tr><td>λ${i+1}</td><td>${w[i].toFixed(6)}</td><td>${V[0][i].toFixed(6)}</td><td>${V[1][i].toFixed(6)}</td><td>${V[2][i].toFixed(6)}</td></tr>`;
+  }
+  document.getElementById(tblId).innerHTML=html;
+}
+function fillDiag(tblId, w){
+  let html='<tr><th></th><th>x</th><th>y</th><th>z</th></tr>';
+  html+=`<tr><th>x</th><td>${w[0].toFixed(6)}</td><td>0.000000</td><td>0.000000</td></tr>`;
+  html+=`<tr><th>y</th><td>0.000000</td><td>${w[1].toFixed(6)}</td><td>0.000000</td></tr>`;
+  html+=`<tr><th>z</th><td>0.000000</td><td>0.000000</td><td>${w[2].toFixed(6)}</td></tr>`;
+  document.getElementById(tblId).innerHTML=html;
+}
+
+// ===== Intersection-length model =====
+function sampleChord(rng, r){ const s = rng()*r; return 2*Math.sqrt(Math.max(0, r*r - s*s)); }
+function sampleOverlapOnce(rng, r){ const L1 = sampleChord(rng, r), L2 = sampleChord(rng, r); const U = rng(); return U * 0.5*(L1+L2); }
+function genOverlapSamples(rng, r, M){ const out = new Array(M); for(let i=0;i<M;i++) out[i]=sampleOverlapOnce(rng,r); return out; }
+function quantiles(arr, probs){
+  const a = Array.from(arr).sort((x,y)=>x-y); const n=a.length;
+  return probs.map(p=>{
+    const t=(n-1)*p; const i=Math.floor(t), j=Math.ceil(t);
+    if(i===j) return a[i];
+    const w=t-i; return a[i]*(1-w)+a[j]*w;
+  });
+}
+function mean(arr){ let s=0; for(const x of arr) s+=x; return s/arr.length; }
+function stdev(arr){ const m=mean(arr); let v=0; for(const x of arr) v+=(x-m)*(x-m); return Math.sqrt(v/arr.length); }
+function drawHist(svg, data, xmax){
+  const W=720, H=320, pad=36;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  const nbin=30; const eps=1e-9;
+  const bins = new Array(nbin).fill(0);
+  for(const x of data){
+    const i = Math.min(nbin-1, Math.max(0, Math.floor(nbin * x / Math.max(xmax,eps))));
+    bins[i]++;
+  }
+  const maxc = Math.max(...bins,1);
+  const x0=pad, y0=H-pad, w=W-2*pad, h=H-2*pad;
+  const ax = document.createElementNS(svg.namespaceURI,'line');
+  ax.setAttribute('x1',x0); ax.setAttribute('y1',y0);
+  ax.setAttribute('x2',x0+w); ax.setAttribute('y2',y0);
+  ax.setAttribute('stroke','#333'); svg.appendChild(ax);
+  const ay = document.createElementNS(svg.namespaceURI,'line');
+  ay.setAttribute('x1',x0); ay.setAttribute('y1',y0);
+  ay.setAttribute('x2',x0); ay.setAttribute('y2',y0-h);
+  ay.setAttribute('stroke','#333'); svg.appendChild(ay);
+  const bw = w/nbin;
+  for(let i=0;i<nbin;i++){
+    const bh = h * (bins[i]/maxc);
+    const rect=document.createElementNS(svg.namespaceURI,'rect');
+    rect.setAttribute('x', x0 + i*bw + 1);
+    rect.setAttribute('y', y0 - bh);
+    rect.setAttribute('width', bw - 2);
+    rect.setAttribute('height', bh);
+    rect.setAttribute('fill', '#8bb9ff');
+    rect.setAttribute('stroke', '#1a5fb4');
+    rect.setAttribute('stroke-width','0.5');
+    svg.appendChild(rect);
+  }
+  for(let t=0;t<=5;t++){
+    const xx=x0 + w*(t/5);
+    const tt=document.createElementNS(svg.namespaceURI,'text');
+    tt.textContent=(xmax*t/5).toFixed(2);
+    tt.setAttribute('x',xx);
+    tt.setAttribute('y',y0+16);
+    tt.setAttribute('text-anchor','middle');
+    tt.setAttribute('font-size','10');
+    svg.appendChild(tt);
+  }
+}
+function fillQTable(tblId, data){
+  const probs=[[0.10,'p10'],[0.25,'p25'],[0.50,'p50'],[0.75,'p75'],[0.90,'p90'],[0.95,'p95'],[0.99,'p99']];
+  const qs=quantiles(data, probs.map(p=>p[0]));
+  const m=mean(data), s=stdev(data);
+  let html='<tr><th>Statistic</th><th>Value</th></tr>';
+  html+=`<tr><td>Mean</td><td>${m.toFixed(3)}</td></tr>`;
+  html+=`<tr><td>Standard deviation</td><td>${s.toFixed(3)}</td></tr>`;
+  html+=`<tr><td>Min – max</td><td>${Math.min(...data).toFixed(3)} – ${Math.max(...data).toFixed(3)}</td></tr>`;
+  for(let i=0;i<probs.length;i++){
+    html+=`<tr><td>${probs[i][1]}</td><td>${qs[i].toFixed(3)}</td></tr>`;
+  }
+  document.getElementById(tblId).innerHTML=html;
+}
+
+// ===== Main run =====
+function downloadStereoSVG(){
+  const svg = document.getElementById('stereo');
+  const clone = svg.cloneNode(true);
+  clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
+  const serializer = new XMLSerializer();
+  let source = serializer.serializeToString(clone);
+  if(!source.match(/^<\\?xml/)){
+    source = '<?xml version="1.0" encoding="UTF-8"?>\\n' + source;
+  }
+  const blob = new Blob([source], {type:'image/svg+xml;charset=utf-8'});
+  const a = document.createElement('a');
+  const ts = new Date();
+  const y=ts.getFullYear(), m=String(ts.getMonth()+1).padStart(2,'0'), d=String(ts.getDate()).padStart(2,'0');
+  const hh=String(ts.getHours()).padStart(2,'0'), mm=String(ts.getMinutes()).padStart(2,'0'), ss=String(ts.getSeconds()).padStart(2,'0');
+  a.download = `stereonet_${y}${m}${d}_${hh}${mm}${ss}.svg`;
+  a.href = URL.createObjectURL(blob);
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 0);
+}
+
+function run(){
+  const N=parseInt(document.getElementById('N').value)||100;
+  const pattern=document.getElementById('pattern').value;
+  const sigma=parseFloat(document.getElementById('sigma').value)||15;
+  const seed=parseInt(document.getElementById('seed').value)||0;
+  const rng=makeRNG(seed);
+  let normals=[];
+  if(pattern==='uniform'){
+    normals=sampleUniform(N,rng);
+  } else {
+    const raw=(document.getElementById('ratios').value||'1:1:1').replace(/：/g,':').replace(/，/g,',');
+    const parts=raw.split(/[: ,xX\\*]+/).map(Number).filter(n=>isFinite(n)&&n>0);
+    if(parts.length!==3){ alert('Invalid x:y:z ratio (e.g., 1:1:1)'); return; }
+    normals=sampleAxisMix(N,rng,parts,sigma);
+  }
+
+  const A = fabricNormals(normals);
+  const eigA = eigSym3(A);
+  const {C, pairs} = fabricIntersections(normals);
+  const eigC = isNaN(C[0][0])? null : eigSym3(C);
+
+  drawStereonet(document.getElementById('stereo'), normals, eigA, eigC, document.getElementById('showC').checked);
+  fillMatrix('A_tbl', A); fillEig('A_eig', eigA); fillDiag('A_diag', eigA.w);
+  if(eigC){
+    fillMatrix('C_tbl', C); fillEig('C_eig', eigC); fillDiag('C_diag', eigC.w);
+  } else {
+    document.getElementById('C_tbl').innerHTML='<tr><td>No intersections can be generated (all normals are almost parallel).</td></tr>';
+    document.getElementById('C_eig').innerHTML='';
+    document.getElementById('C_diag').innerHTML='';
+  }
+
+  const trA = (A[0][0]+A[1][1]+A[2][2]).toFixed(6);
+  const trC = eigC? (C[0][0]+C[1][1]+C[2][2]).toFixed(6): '—';
+  document.getElementById('summary').innerHTML = `N=${N}, number of intersection pairs=${pairs??0} | tr(N)=${trA} tr(C)=${trC}`;
+
+  // Histogram & quantiles for overlap length (approx model)
+  const r = Math.max(0, Number(document.getElementById('diam').value||2)/2);
+  const M = Math.max(100, parseInt(document.getElementById('Mpairs').value||50000));
+  const samples = genOverlapSamples(rng, r, M);
+  drawHist(document.getElementById('hist'), samples, 2*r);
+  fillQTable('qtable', samples);
+}
+
+document.getElementById('runBtn').addEventListener('click', run);
+document.getElementById('dlSVG').addEventListener('click', downloadStereoSVG);
+run();
+</script>
+</body>
+</html>
